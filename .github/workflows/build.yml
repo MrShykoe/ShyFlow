@@ -1,0 +1,49 @@
+# Сборка ShyFlow на GitHub (бесплатный Windows-сервер).
+#  - любой push: проверка, что всё собирается; установщик лежит в Artifacts у запуска
+#  - тег вида 3.5.0: то же + релиз с ShyFlow-Setup.exe (остров у пользователей сам предложит обновиться)
+#    Текст релиза берётся из release-notes/<тег>.md
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
+      - name: Build ShyFlow and installer
+        shell: pwsh
+        run: ./build-all.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShyFlow-Setup
+          path: out/installer/ShyFlow-Setup.exe
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $notes = "release-notes/$tag.md"
+          if (-not (Test-Path $notes)) { Set-Content $notes "ShyFlow $tag" }
+          gh release create $tag out/installer/ShyFlow-Setup.exe --title "ShyFlow $tag" --notes-file $notes
