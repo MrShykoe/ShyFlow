@@ -1,0 +1,61 @@
+# Сборка ShyFlow. Исходники лежат здесь только зашифрованными (.build/src.tar.gz.enc);
+# расшифровывает их сборка ключом из секрета SRC_KEY (Settings → Secrets → Actions).
+# Новая версия в Island.csproj, для которой ещё нет релиза → релиз с ShyFlow-Setup.exe и текстом из release-notes/<версия>.md
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decrypt source
+        shell: bash
+        env:
+          SRC_KEY: ${{ secrets.SRC_KEY }}
+        run: |
+          if [ -z "$SRC_KEY" ]; then echo "::error::Нет секрета SRC_KEY"; exit 1; fi
+          mkdir src
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in .build/src.tar.gz.enc -pass env:SRC_KEY | tar -xz -C src
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
+      - name: Build ShyFlow and installer
+        shell: pwsh
+        working-directory: src
+        run: ./build-all.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShyFlow-Setup
+          path: src/out/installer/ShyFlow-Setup.exe
+
+      - name: Release
+        shell: pwsh
+        working-directory: src
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [xml]$proj = Get-Content Island\Island.csproj -Raw -Encoding UTF8
+          $ver = @($proj.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ })[0]
+          gh release view $ver --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) { Write-Host "Релиз $ver уже есть"; exit 0 }
+          $notes = "release-notes\$ver.md"
+          if (-not (Test-Path $notes)) { Set-Content $notes "ShyFlow $ver" }
+          gh release create $ver out\installer\ShyFlow-Setup.exe --repo $env:GITHUB_REPOSITORY --target main --title "ShyFlow $ver" --notes-file $notes
+          if ($LASTEXITCODE -ne 0) { throw 'Релиз не создан' }
