@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+out/
+*.user
+Package/.tools/
+*.pfx
+*.cer

@@ -1,0 +1,701 @@
+﻿<Window x:Class="Island.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Island"
+        Title="ShyFlow" Width="460" Height="260"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False" ResizeMode="NoResize">
+    <Window.Resources>
+        <Style x:Key="Ghost" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <local:SBorder x:Name="Bd" CornerRadius="18" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </local:SBorder>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#26FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#40FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- вкладка кармана: прозрачная, выбранную подсвечивает общая плашка TabPill -->
+        <Style x:Key="Tab" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <local:SBorder x:Name="Bd" CornerRadius="14" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </local:SBorder>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#0FFFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Chip" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <local:SBorder x:Name="Bd" CornerRadius="15" Background="#1FFFFFFF" Padding="14,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </local:SBorder>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#38FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#50FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Stage">
+        <local:SBorder x:Name="Pill" Background="#000000" Width="190" Height="38" CornerRadius="19"
+                VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,8,0,0"
+                ClipToBounds="True" MouseLeftButtonUp="Pill_Click" AllowDrop="True"
+                DragEnter="Pill_DragEnter" DragOver="Pill_DragOver" DragLeave="Pill_DragLeave" Drop="Pill_Drop">
+            <local:SBorder.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Настройки" Click="Settings_Click"/>
+                    <MenuItem Header="Скрыть / показать (Ctrl+Alt+I)" Click="Hide_Click"/>
+                    <MenuItem Header="Тест уведомления" Click="Test_Click"/>
+                    <MenuItem Header="Журнал уведомлений" Click="Log_Click"/>
+                    <MenuItem Header="Коллекция карточек" Click="Collection_Click"/>
+                    <MenuItem Header="Шторка уведомлений (Ctrl+Alt+B)" Click="Center_Click"/>
+                    <MenuItem Header="Статистика прослушиваний" Click="Stats_Click"/>
+                    <MenuItem Header="Что нового" Click="WhatsNew_Click"/>
+                    <MenuItem Header="Блокнот" Click="Notepad_Click"/>
+                    <MenuItem Header="Календарь" Click="Calendar_Click"/>
+                    <MenuItem Header="Переводчик (Ctrl+Alt+Q)" Click="Translator_Click"/>
+                    <MenuItem Header="Карточка «Сейчас играет» для сторис" Click="Story_Click"/>
+                    <MenuItem Header="Выход" Click="Exit_Click"/>
+                </ContextMenu>
+            </local:SBorder.ContextMenu>
+            <Grid x:Name="PillContent">
+                <local:SBorder x:Name="BgImg" CornerRadius="{Binding CornerRadius, ElementName=Pill}" Opacity="0" IsHitTestVisible="False"/>
+                <!-- свой фон острова (картинка, гифка, видео) и затемнение над ним; обрезаются по контуру острова (Customize.cs) -->
+                <Border x:Name="BgCustom" Visibility="Collapsed" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5"/>
+                <Border x:Name="BgShade" Visibility="Collapsed" IsHitTestVisible="False"/>
+                <local:SBorder x:Name="MiniProg" Height="2" CornerRadius="1" Background="#99FFFFFF" VerticalAlignment="Bottom"
+                        HorizontalAlignment="Left" Width="0" Margin="14,0,0,3" Opacity="0" IsHitTestVisible="False"/>
+                <!-- Свёрнутый вид -->
+                <Grid x:Name="Mini" Margin="8,0,14,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- идущий таймер или секундомер, как Live Activity (см. Timers.cs) -->
+                    <StackPanel x:Name="MiniTimer" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="8,0,0,0" Visibility="Collapsed">
+                        <local:VIcon x:Name="MiniTimerIcon" Text="timer" FontSize="12" Foreground="#FF9F0A" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="MiniTimerText" Foreground="#FF9F0A" FontSize="12" FontWeight="SemiBold" Margin="4,0,0,0"
+                                   VerticalAlignment="Center" Typography.NumeralAlignment="Tabular"/>
+                    </StackPanel>
+                    <local:SBorder x:Name="CoverMini" Width="22" Height="22" CornerRadius="11" Background="#333"/>
+                    <TextBlock x:Name="MiniGlow" Grid.Column="1" FontSize="12" Margin="10,0,10,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Opacity="0" IsHitTestVisible="False">
+                        <TextBlock.CacheMode><BitmapCache/></TextBlock.CacheMode>
+                    </TextBlock>
+                    <TextBlock x:Name="MiniTitleOld" Grid.Column="1" Foreground="White" FontSize="12" Margin="10,0,10,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Opacity="0" IsHitTestVisible="False"/>
+                    <TextBlock x:Name="MiniTitle" Grid.Column="1" Foreground="White" FontSize="12" Margin="10,0,10,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <Canvas x:Name="MiniFx" Grid.Column="1" IsHitTestVisible="False"/>
+                    <StackPanel x:Name="MiniEq" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Height="18"/>
+                </Grid>
+                <!-- Развёрнутый вид -->
+                <Grid x:Name="Full" Margin="18" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                    <!-- значки открытых приложений внутри развёрнутого острова (если выбрано «В острове») -->
+                    <StackPanel x:Name="AppsFullRow" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
+                                Margin="0,8,0,0" Height="30" Visibility="Collapsed" Background="Transparent"/>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <local:SBorder x:Name="CoverBig" Width="64" Height="64" CornerRadius="16" Background="#333"
+                                       Cursor="Hand" ToolTip="На весь экран" MouseLeftButtonUp="CoverBig_Click"/>
+                        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <Grid>
+                                <TextBlock x:Name="TitleText" Foreground="White" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <Canvas x:Name="TitleFx" IsHitTestVisible="False"/>
+                            </Grid>
+                            <Grid>
+                                <TextBlock x:Name="ArtistText" Foreground="#999" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                <Canvas x:Name="ArtistFx" IsHitTestVisible="False"/>
+                            </Grid>
+                        </StackPanel>
+                        <Image x:Name="FullGif" Grid.Column="2" Width="64" Height="64" Stretch="Uniform" Margin="8,0,2,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed" IsHitTestVisible="False"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,-2,0,0">
+                            <StackPanel x:Name="FullEq" Orientation="Horizontal" VerticalAlignment="Center" Height="18" Margin="6,0,6,0"/>
+                            <!-- шаг 71: забрать обложку в коллекцию прямо из острова (Collect.cs) -->
+                            <Button x:Name="StarBtn" Style="{StaticResource Ghost}" FontSize="15"
+                                    Width="32" Height="32" ToolTip="Забрать обложку в коллекцию" Click="Star_Click"><local:VIcon x:Name="StarIcon" Text="star"/></Button>
+                            <Button x:Name="ExpandBtn" Style="{StaticResource Ghost}" FontSize="15"
+                                    Width="32" Height="32" ToolTip="На весь экран" Click="Expand_Click"><local:VIcon Text="&#xE740;"/></Button>
+                        </StackPanel>
+                    </Grid>
+                    <Grid x:Name="FullLyr" Grid.Row="1" Height="0" Margin="0,8,0,0" ClipToBounds="True" Visibility="Collapsed">
+                        <TextBlock x:Name="FullGlow" FontSize="15" FontWeight="SemiBold" Opacity="0" IsHitTestVisible="False"
+                                   VerticalAlignment="Top" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis">
+                            <TextBlock.CacheMode><BitmapCache/></TextBlock.CacheMode>
+                        </TextBlock>
+                        <TextBlock x:Name="FullL0" Foreground="White" FontSize="15" FontWeight="SemiBold" Opacity="0"
+                                   VerticalAlignment="Top" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="FullL1" Foreground="White" FontSize="15" FontWeight="SemiBold"
+                                   VerticalAlignment="Top" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="FullL2" Foreground="#66FFFFFF" FontSize="12" Margin="0,26,0,0"
+                                   VerticalAlignment="Top" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis"/>
+                        <Canvas x:Name="FullFx" IsHitTestVisible="False"/>
+                    </Grid>
+                    <Grid Grid.Row="2" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="TimeL" Text="0:00" Foreground="#888" FontSize="11" VerticalAlignment="Center" MinWidth="34"/>
+                        <Grid x:Name="SliderHost" Grid.Column="1" Height="22" Background="Transparent" Cursor="Hand" Margin="6,0"
+                              MouseLeftButtonDown="Seek_Down" MouseMove="Seek_Move" MouseLeftButtonUp="Seek_Up"
+                              MouseEnter="Seek_Enter" MouseLeave="Seek_Leave">
+                            <local:SBorder x:Name="SeekTrack" Height="4" CornerRadius="2" Background="#33FFFFFF" VerticalAlignment="Center"/>
+                            <local:SBorder x:Name="SeekFill" Width="0" Height="4" CornerRadius="2" Background="White"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <Ellipse x:Name="SeekThumb" Width="12" Height="12" Fill="White" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <local:WaveBar x:Name="SeekWave" Visibility="Collapsed"/>
+                        </Grid>
+                        <TextBlock x:Name="TimeR" Grid.Column="2" Text="0:00" Foreground="#888" FontSize="11"
+                                   VerticalAlignment="Center" TextAlignment="Right" MinWidth="34"/>
+                    </Grid>
+                    <Grid Grid.Row="3" Margin="0,2,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button x:Name="PrevBtn" Style="{StaticResource Ghost}" Width="46" Margin="3,0" Click="Prev_Click"><local:VIcon x:Name="PrevIcon" Text="&#xE100;"/></Button>
+                            <Button x:Name="PlayBtn" Style="{StaticResource Ghost}" Width="46" Margin="3,0" Click="Play_Click"><local:VIcon x:Name="PlayIcon" Text="&#xE102;"/></Button>
+                            <Button x:Name="NextBtn" Style="{StaticResource Ghost}" Width="46" Margin="3,0" Click="Next_Click"><local:VIcon x:Name="NextIcon" Text="&#xE101;"/></Button>
+                        </StackPanel>
+                        <Button Style="{StaticResource Chip}" Height="30" Padding="0"
+                                HorizontalAlignment="Left" VerticalAlignment="Bottom" Click="Actions_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <local:VIcon Text="sliders-horizontal" FontSize="12" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Text="Действия" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource Chip}" Height="30" Padding="0"
+                                HorizontalAlignment="Right" VerticalAlignment="Bottom" Click="Pocket_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <local:VIcon Text="folder" FontSize="12" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Text="Карман" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Grid>
+                <!-- Звук и микрофон: смена устройств по умолчанию -->
+                <Grid x:Name="DevPanel" Margin="16,12" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Звук и микрофон" Foreground="White" FontWeight="SemiBold" FontSize="14"
+                               VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" Width="34" Height="34" Click="DevicesClose_Click"><local:VIcon Text="&#xE711;" FontSize="14"/></Button>
+                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel x:Name="DevOut" Grid.Column="0"/>
+                        <StackPanel x:Name="DevIn" Grid.Column="2"/>
+                    </Grid>
+                </Grid>
+                <!-- Подсказка при перетаскивании файла на остров -->
+                <!-- что тащат, видно сразу: значок по типу, имя файла, адрес ссылки или начало текста (см. DropFx.cs) -->
+                <Grid x:Name="DropHint" Margin="9" Opacity="0" IsHitTestVisible="False">
+                    <!-- рамка «бегущим» пунктиром по тем же мягким углам, что и остров -->
+                    <Path x:Name="DropDash" Stroke="#70FFFFFF" StrokeThickness="1.5" StrokeDashArray="3.5 3" StrokeDashCap="Round"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="14,0">
+                        <local:SBorder x:Name="DropBadge" Width="46" Height="46" CornerRadius="15" Background="#26FFFFFF">
+                            <local:VIcon x:Name="DropIcon" Text="download" FontSize="20" Foreground="White"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </local:SBorder>
+                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center" MaxWidth="220">
+                            <TextBlock x:Name="DropText" Text="Кинь файл сюда" Foreground="White" FontSize="14" FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="DropSub" Text="чтобы добавить в карман" Foreground="#99FFFFFF" FontSize="12"
+                                       TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+                <!-- Всплывающая плашка: громкость, яркость, пауза, переключение -->
+                <!-- Плашка (громкость, яркость, сеть, клавиши, зарядка, трек...): значок в цветном квадратике, заголовок и подпись,
+                     у громкости и яркости полоска. Вид в Toasts.cs -->
+                <Grid x:Name="Osd" Margin="11,0,16,0" Opacity="0" IsHitTestVisible="False">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <local:SBorder x:Name="OsdBadge" Width="32" Height="32" CornerRadius="10" Background="#26FFFFFF" VerticalAlignment="Center">
+                        <Grid>
+                            <local:SBorder x:Name="OsdArt" CornerRadius="10" Visibility="Collapsed"/>
+                            <local:WaveFill x:Name="OsdWave" CornerRadius="10" Visibility="Collapsed"/>
+                            <local:VIcon x:Name="OsdIcon" FontSize="16" Foreground="White"
+                                         VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Grid>
+                    </local:SBorder>
+                    <Grid Grid.Column="1" Margin="11,0,8,0" VerticalAlignment="Center">
+                        <local:SBorder x:Name="OsdTrack" Width="170" Height="6" CornerRadius="3" Background="#2EFFFFFF"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <local:SBorder x:Name="OsdFill" Width="0" Height="6" CornerRadius="3" Background="White"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <StackPanel x:Name="OsdTextBox" VerticalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock x:Name="OsdText" Foreground="White" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="OsdSub" Foreground="#99FFFFFF" FontSize="11.5" TextTrimming="CharacterEllipsis"
+                                       Margin="0,1,0,0" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock x:Name="OsdValue" Grid.Column="2" Foreground="White" FontWeight="SemiBold" FontSize="13.5"
+                               VerticalAlignment="Center" MinWidth="30" TextAlignment="Right" Typography.NumeralAlignment="Tabular"/>
+                </Grid>
+
+                <!-- Уведомление: цветной значок приложения, имя приложения и «сейчас», заголовок, текст до двух строк (Toasts.cs) -->
+                <!-- Шаг 49: клик раскрывает уведомление (весь текст, «Открыть», «Скрыть», «Все»), смахивается в сторону или вверх (NotifCenter.cs) -->
+                <Grid x:Name="Notif" Margin="12,0,18,0" Opacity="0" IsHitTestVisible="False">
+                    <Grid x:Name="NotifInner" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <local:SBorder x:Name="NotifIcon" Width="44" Height="44" CornerRadius="13" Background="White" VerticalAlignment="Center">
+                            <Grid>
+                                <TextBlock x:Name="NotifInit" Foreground="White" FontWeight="Bold" FontSize="15"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Image x:Name="NotifImg" Width="28" Height="28" Visibility="Collapsed" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Grid>
+                        </local:SBorder>
+                        <StackPanel x:Name="NotifTexts" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <Grid>
+                                <TextBlock x:Name="NotifApp" Foreground="#80FFFFFF" FontSize="11" FontWeight="Medium" TextTrimming="CharacterEllipsis" Margin="0,0,44,0"/>
+                                <TextBlock x:Name="NotifTime" Text="сейчас" Foreground="#60FFFFFF" FontSize="11" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <TextBlock x:Name="NotifTitle" Foreground="White" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                            <TextBlock x:Name="NotifBody" Foreground="#B0FFFFFF" FontSize="12.5" TextTrimming="CharacterEllipsis"
+                                       TextWrapping="Wrap" LineHeight="16" LineStackingStrategy="BlockLineHeight" MaxHeight="32"/>
+                        </StackPanel>
+                        <StackPanel x:Name="NotifBtns" Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                                    Margin="0,10,0,0" Visibility="Collapsed"/>
+                        <!-- быстрые ответы (шаг 56, NotifCenter.cs): заготовки фраз под кнопками -->
+                        <WrapPanel x:Name="NotifReplies" Grid.Row="2" Grid.ColumnSpan="2" HorizontalAlignment="Right" Margin="0,8,0,0" Visibility="Collapsed"/>
+                    </Grid>
+                </Grid>
+                <!-- Карман: файлы и буфер обмена -->
+                <Grid x:Name="Pocket" Margin="16,12" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <!-- вкладки: переключатель с подсветкой, которая переезжает к выбранной -->
+                    <local:SBorder x:Name="TabTrack" HorizontalAlignment="Left" Height="32" CornerRadius="16" Background="#14FFFFFF" Padding="2">
+                        <Grid>
+                            <local:SBorder x:Name="TabPill" CornerRadius="14" Background="#2EFFFFFF" HorizontalAlignment="Left" Width="94" IsHitTestVisible="False">
+                                <local:SBorder.RenderTransform><TranslateTransform x:Name="TabPillMove"/></local:SBorder.RenderTransform>
+                            </local:SBorder>
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="TabFiles" Style="{StaticResource Tab}" Width="94" Click="TabFiles_Click"/>
+                                <Button x:Name="TabClips" Style="{StaticResource Tab}" Width="94" Click="TabClips_Click"/>
+                                <Button x:Name="TabNotes" Style="{StaticResource Tab}" Width="94" Click="TabNotes_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </local:SBorder>
+                    <!-- поиск по карману: поле встаёт на место вкладок -->
+                    <local:SBorder x:Name="PocketSearchWrap" HorizontalAlignment="Left" Width="286" Height="32" CornerRadius="16"
+                                   Background="#1FFFFFFF" Visibility="Collapsed">
+                        <Grid>
+                            <local:VIcon Text="search" FontSize="12" Foreground="#99FFFFFF" HorizontalAlignment="Left"
+                                         VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <TextBox x:Name="PocketSearch" Background="Transparent" Foreground="White" CaretBrush="White" BorderThickness="0"
+                                     Padding="32,0,10,0" FontSize="13" VerticalContentAlignment="Center"
+                                     TextChanged="PocketSearch_TextChanged" PreviewKeyDown="PocketSearch_KeyDown"/>
+                            <TextBlock x:Name="PocketSearchHint" Text="Поиск в кармане" Foreground="#66FFFFFF" FontSize="13"
+                                       Margin="34,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        </Grid>
+                    </local:SBorder>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Style="{StaticResource Ghost}" Width="30" Height="32" Click="Notepad_Click" ToolTip="Блокнот: длинные записи в отдельном окне">
+                            <local:VIcon Text="sticky-note" FontSize="13"/>
+                        </Button>
+                        <Button x:Name="PocketSearchBtn" Style="{StaticResource Ghost}" Width="30" Height="32" Click="PocketSearch_Click" ToolTip="Поиск">
+                            <local:VIcon Text="search" FontSize="13"/>
+                        </Button>
+                        <Button x:Name="PocketClear" Style="{StaticResource Ghost}" Width="30" Height="32" Click="PocketClear_Click">
+                            <local:VIcon x:Name="PocketClearIcon" Text="trash-2" FontSize="13"/>
+                        </Button>
+                        <Button Style="{StaticResource Ghost}" Width="30" Height="32" Click="PocketClose_Click"><local:VIcon Text="&#xE711;" FontSize="14"/></Button>
+                    </StackPanel>
+                    <ScrollViewer x:Name="PocketScroll" Grid.Row="1" Margin="0,10,0,0"
+                                  HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                                  PreviewMouseWheel="PocketScroll_Wheel" ScrollChanged="PocketScroll_Changed">
+                        <StackPanel x:Name="PocketList" Orientation="Horizontal" VerticalAlignment="Top"/>
+                    </ScrollViewer>
+                    <!-- пусто: значок и подсказка по центру -->
+                    <StackPanel x:Name="PocketEmptyBox" Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                IsHitTestVisible="False">
+                        <local:SBorder Width="40" Height="40" CornerRadius="20" Background="#14FFFFFF" HorizontalAlignment="Center">
+                            <local:VIcon x:Name="PocketEmptyIcon" Text="file" FontSize="17" Foreground="#99FFFFFF"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </local:SBorder>
+                        <TextBlock x:Name="PocketEmpty" Foreground="#88FFFFFF" FontSize="12.5" Margin="0,8,0,0"
+                                   HorizontalAlignment="Center" TextAlignment="Center"/>
+                    </StackPanel>
+                    <local:SBorder x:Name="NoteWrap" Grid.Row="2" CornerRadius="16" Background="#1FFFFFFF" Margin="0,8,0,0" Visibility="Collapsed">
+                        <Grid>
+                            <TextBox x:Name="NoteBox" Background="Transparent" Foreground="White" CaretBrush="White" BorderThickness="0"
+                                     Padding="12,7,40,7" FontSize="13" VerticalContentAlignment="Center" KeyDown="NoteBox_KeyDown"
+                                     TextChanged="NoteBox_TextChanged"/>
+                            <TextBlock x:Name="NoteHint" Text="Новая заметка" Foreground="#66FFFFFF" FontSize="13" Margin="14,0,0,0"
+                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
+                            <local:SBorder x:Name="NoteAdd" Width="26" Height="26" CornerRadius="13" Background="White" Margin="0,0,5,0"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Hand" Opacity="0.35"
+                                           MouseLeftButtonUp="NoteAdd_Click">
+                                <local:VIcon Text="arrow-up" FontSize="13" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </local:SBorder>
+                        </Grid>
+                    </local:SBorder>
+                </Grid>
+                <!-- Быстрые действия -->
+                <Grid x:Name="Actions" Margin="16,12" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="ActionsTitle" Text="Быстрые действия" Foreground="White" FontWeight="SemiBold" FontSize="14"
+                               VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <!-- микрофон (MicToggle.cs): выключить и включить, Ctrl+Alt+V -->
+                        <Button x:Name="MicBtn" Style="{StaticResource Ghost}" Width="32" Height="32" Click="MicBtn_Click"
+                                ToolTip="Выключить микрофон (Ctrl+Alt+V)"><local:VIcon x:Name="MicIcon" Text="mic" FontSize="14"/></Button>
+                        <!-- шторка уведомлений (NotifCenter.cs), красный кружок: сколько новых -->
+                        <Grid>
+                            <Button x:Name="BellBtn" Style="{StaticResource Ghost}" Width="32" Height="32" ToolTip="Уведомления"
+                                    Click="Bell_Click"><local:VIcon Text="bell" FontSize="14"/></Button>
+                            <local:SBorder x:Name="BellBadge" MinWidth="15" Height="15" CornerRadius="7.5" Background="#FF453A" Padding="4,0"
+                                           HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,1,0" IsHitTestVisible="False" Visibility="Collapsed">
+                                <TextBlock x:Name="BellCount" Foreground="White" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </local:SBorder>
+                        </Grid>
+                        <Button Style="{StaticResource Ghost}" Width="32" Height="32" Click="ActionsClose_Click"><local:VIcon Text="&#xE711;" FontSize="14"/></Button>
+                    </StackPanel>
+                    <!-- шаг 71: четыре колонки, чтобы подписи не обрезались; все действия листаются колесом (Actions.cs) -->
+                    <ScrollViewer x:Name="ActionsScroll" Grid.Row="1" Margin="-4,6,-4,-4" VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly" Focusable="False">
+                        <UniformGrid x:Name="ActionsGrid" Columns="4" VerticalAlignment="Top"/>
+                    </ScrollViewer>
+                </Grid>
+                <!-- Таймер и секундомер (см. Timers.cs) -->
+                <Grid x:Name="TimerPanel" Margin="16,12" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <local:SBorder HorizontalAlignment="Left" Height="32" CornerRadius="16" Background="#14FFFFFF" Padding="2">
+                        <Grid>
+                            <local:SBorder CornerRadius="14" Background="#2EFFFFFF" HorizontalAlignment="Left" Width="112" IsHitTestVisible="False">
+                                <local:SBorder.RenderTransform><TranslateTransform x:Name="TmPillMove"/></local:SBorder.RenderTransform>
+                            </local:SBorder>
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="TmTabTimer" Style="{StaticResource Tab}" Width="112" Click="TmTabTimer_Click"/>
+                                <Button x:Name="TmTabWatch" Style="{StaticResource Tab}" Width="112" Click="TmTabWatch_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </local:SBorder>
+                    <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" Width="32" Height="32" Click="TimerClose_Click"><local:VIcon Text="&#xE711;" FontSize="14"/></Button>
+                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="TmMinus" Style="{StaticResource Ghost}" Width="40" Height="40" Click="TmMinus_Click" ToolTip="Минус минута">
+                            <local:VIcon Text="minus" FontSize="16"/>
+                        </Button>
+                        <TextBlock x:Name="TmDigits" Grid.Column="1" Foreground="White" FontSize="46" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular"/>
+                        <Button x:Name="TmPlus" Grid.Column="2" Style="{StaticResource Ghost}" Width="40" Height="40" Click="TmPlus_Click" ToolTip="Плюс минута">
+                            <local:VIcon Text="plus" FontSize="16"/>
+                        </Button>
+                        <local:SBorder x:Name="TmBarTrack" Grid.ColumnSpan="3" VerticalAlignment="Bottom" Height="4" CornerRadius="2"
+                                       Background="#22FFFFFF" Margin="48,0,48,0">
+                            <local:SBorder x:Name="TmBar" HorizontalAlignment="Left" Width="0" CornerRadius="2" Background="#FF9F0A"/>
+                        </local:SBorder>
+                    </Grid>
+                    <Grid Grid.Row="2" Margin="0,10,0,0">
+                        <StackPanel x:Name="TmPresets" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TmLaps" Foreground="#99FFFFFF" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                   Typography.NumeralAlignment="Tabular" Visibility="Collapsed"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button x:Name="TmLap" Style="{StaticResource Ghost}" Width="40" Height="40" Click="TmLap_Click" ToolTip="Круг" Visibility="Collapsed">
+                                <local:VIcon Text="flag" FontSize="15"/>
+                            </Button>
+                            <Button x:Name="TmReset" Style="{StaticResource Ghost}" Width="40" Height="40" Click="TmReset_Click" ToolTip="Сброс" Margin="0,0,6,0">
+                                <local:VIcon Text="rotate-ccw" FontSize="15"/>
+                            </Button>
+                            <local:SBorder x:Name="TmGo" Width="44" Height="44" CornerRadius="22" Background="#FF9F0A" Cursor="Hand"
+                                           MouseLeftButtonUp="TmGo_Click">
+                                <local:VIcon x:Name="TmGoIcon" Text="play" FontSize="17" Foreground="Black"
+                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </local:SBorder>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+                <!-- Громкость программ (см. Mixer.cs) -->
+                <Grid x:Name="MixerPanel" Margin="16,12" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Громкость программ" Foreground="White" FontWeight="SemiBold" FontSize="14"
+                               VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" Width="32" Height="32" Click="MixerClose_Click"><local:VIcon Text="&#xE711;" FontSize="14"/></Button>
+                    <ScrollViewer x:Name="MixerScroll" Grid.Row="1" Margin="0,6,0,0" VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="MixerList"/>
+                    </ScrollViewer>
+                </Grid>
+                <!-- Переводчик (Translator.cs): Ctrl+Alt+Q переводит выделенное в любой программе, или плитка «Переводчик» -->
+                <Grid x:Name="TrPanel" Margin="16,12" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
+                        <local:VIcon Text="languages" FontSize="14" Foreground="White" VerticalAlignment="Center"/>
+                        <TextBlock Text="Переводчик" Foreground="White" FontWeight="SemiBold" FontSize="14" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="TrDir" Style="{StaticResource Chip}" Height="28" Click="TrDir_Click" ToolTip="На какой язык переводить"/>
+                        <Button Style="{StaticResource Ghost}" Width="32" Height="32" Click="TrClose_Click" Margin="4,0,0,0"><local:VIcon Text="&#xE711;" FontSize="14"/></Button>
+                    </StackPanel>
+                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition Height="6"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <local:SBorder CornerRadius="14" Background="#1AFFFFFF">
+                            <Grid>
+                                <TextBox x:Name="TrIn" Background="Transparent" Foreground="White" CaretBrush="White" BorderThickness="0"
+                                         FontSize="13" Padding="10,6" TextWrapping="Wrap" AcceptsReturn="False" VerticalScrollBarVisibility="Hidden"
+                                         TextChanged="TrIn_TextChanged"/>
+                                <TextBlock x:Name="TrHint" Text="Напиши или вставь текст" Foreground="#66FFFFFF" FontSize="13" Margin="13,7,0,0" IsHitTestVisible="False"/>
+                            </Grid>
+                        </local:SBorder>
+                        <local:SBorder Grid.Row="2" CornerRadius="14" Background="#0DFFFFFF" BorderBrush="#1AFFFFFF" BorderThickness="1">
+                            <Grid>
+                                <TextBox x:Name="TrOut" Background="Transparent" Foreground="White" BorderThickness="0" IsReadOnly="True"
+                                         FontSize="13.5" FontWeight="SemiBold" Padding="10,6" TextWrapping="Wrap" VerticalScrollBarVisibility="Hidden"/>
+                                <TextBlock x:Name="TrState" Foreground="#66FFFFFF" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,6" IsHitTestVisible="False"/>
+                            </Grid>
+                        </local:SBorder>
+                    </Grid>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button x:Name="TrPaste" Style="{StaticResource Chip}" Height="28" Click="TrPaste_Click" Margin="0,0,6,0" Content="Вставить вместо выделенного"/>
+                        <Button x:Name="TrCopy" Style="{StaticResource Chip}" Height="28" Click="TrCopy_Click" Content="Копировать"/>
+                    </StackPanel>
+                </Grid>
+                <!-- Шторка уведомлений (NotifCenter.cs) -->
+                <Grid x:Name="CenterPanel" Margin="16,12" Opacity="0" IsHitTestVisible="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
+                        <TextBlock Text="Уведомления" Foreground="White" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="CenterCount" Foreground="#80FFFFFF" FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="CenterClear" Style="{StaticResource Ghost}" Width="32" Height="32" Click="CenterClear_Click" ToolTip="Очистить всё">
+                            <local:VIcon Text="trash-2" FontSize="13"/>
+                        </Button>
+                        <Button Style="{StaticResource Ghost}" Width="32" Height="32" Click="CenterClose_Click"><local:VIcon Text="&#xE711;" FontSize="14"/></Button>
+                    </StackPanel>
+                    <ScrollViewer x:Name="CenterScroll" Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="CenterList"/>
+                    </ScrollViewer>
+                    <StackPanel x:Name="CenterEmpty" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                        <local:SBorder Width="40" Height="40" CornerRadius="20" Background="#14FFFFFF" HorizontalAlignment="Center">
+                            <local:VIcon Text="bell-off" FontSize="17" Foreground="#99FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </local:SBorder>
+                        <TextBlock Text="Новых уведомлений нет" Foreground="#88FFFFFF" FontSize="12.5" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+                <Ellipse x:Name="RecDot" Width="7" Height="7" HorizontalAlignment="Left" VerticalAlignment="Top"
+                         Margin="11,8,0,0" Opacity="0" IsHitTestVisible="False" Fill="Orange"/>
+            </Grid>
+        </local:SBorder>
+        <!-- Значки открытых приложений рядом с островом, как док или меню-бар (AppsBar.cs) -->
+        <local:SBorder x:Name="AppsBar" VerticalAlignment="Top" HorizontalAlignment="Center" Height="34" CornerRadius="17"
+                       Margin="0,10,0,0" Visibility="Collapsed"
+                       Background="{Binding Background, ElementName=Pill}" BorderBrush="{Binding BorderBrush, ElementName=Pill}"
+                       BorderThickness="{Binding BorderThickness, ElementName=Pill}">
+            <local:SBorder.RenderTransform><TranslateTransform x:Name="AppsBarMove"/></local:SBorder.RenderTransform>
+            <!-- тот же фон, что у острова: размытая обложка или свой фон с затемнением; обрезается по контуру капсулы -->
+            <Grid>
+              <Grid x:Name="AppsBgLayers" IsHitTestVisible="False">
+                <local:SBorder CornerRadius="{Binding CornerRadius, ElementName=AppsBar}" IsHitTestVisible="False"
+                               Background="{Binding Background, ElementName=BgImg}" Opacity="{Binding Opacity, ElementName=BgImg}"
+                               Visibility="{Binding Visibility, ElementName=BgImg}"/>
+                <!-- эффекты свои, не общие с островом (Customize.cs, Appearance.cs) -->
+                <Border x:Name="AppsBgCustom" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5"
+                        Background="{Binding Background, ElementName=BgCustom}" Visibility="{Binding Visibility, ElementName=BgCustom}"/>
+                <Border IsHitTestVisible="False"
+                        Background="{Binding Background, ElementName=BgShade}" Visibility="{Binding Visibility, ElementName=BgShade}"/>
+              </Grid>
+                <!-- значки не обрезаются: под мышкой они увеличиваются и выходят за капсулу -->
+                <StackPanel x:Name="AppsList" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0" Background="Transparent"/>
+            </Grid>
+        </local:SBorder>
+        <!-- Второй «пузырь» рядом с островом, как в iOS: таймер, секундомер или копирование, пока играет музыка (Bubble.cs) -->
+        <local:SBorder x:Name="Bubble" VerticalAlignment="Top" HorizontalAlignment="Center" Height="38" MinWidth="38" CornerRadius="19"
+                       Margin="0,8,0,0" Visibility="Collapsed" Cursor="Hand"
+                       Background="{Binding Background, ElementName=Pill}" BorderBrush="{Binding BorderBrush, ElementName=Pill}"
+                       BorderThickness="{Binding BorderThickness, ElementName=Pill}">
+            <local:SBorder.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="BubbleScale"/>
+                    <TranslateTransform x:Name="BubbleIn"/>
+                    <TranslateTransform x:Name="BubbleMove"/>
+                </TransformGroup>
+            </local:SBorder.RenderTransform>
+            <Grid>
+            <!-- фон как у острова: размытая обложка или свой фон (можно выключить, Bubble.cs) -->
+            <Grid x:Name="BubbleBgLayers" IsHitTestVisible="False">
+                <local:SBorder CornerRadius="{Binding CornerRadius, ElementName=Bubble}"
+                               Background="{Binding Background, ElementName=BgImg}" Opacity="{Binding Opacity, ElementName=BgImg}"
+                               Visibility="{Binding Visibility, ElementName=BgImg}"/>
+                <Border x:Name="BubbleBgCustom" RenderTransformOrigin="0.5,0.5"
+                        Background="{Binding Background, ElementName=BgCustom}" Visibility="{Binding Visibility, ElementName=BgCustom}"/>
+                <Border Background="{Binding Background, ElementName=BgShade}" Visibility="{Binding Visibility, ElementName=BgShade}"/>
+            </Grid>
+            <StackPanel x:Name="BubbleBody" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,12,0">
+                <StackPanel.RenderTransform><TranslateTransform x:Name="BubbleBodyMove"/></StackPanel.RenderTransform>
+                <Grid Width="24" Height="24" VerticalAlignment="Center">
+                    <!-- шаг 62: у копирования и скачивания вместо кольца кружок наполняется жидкостью (Ui\WaveFill.cs) -->
+                    <local:WaveFill x:Name="BubbleWave" Visibility="Collapsed"/>
+                    <Ellipse x:Name="BubbleTrack" Stroke="#33FFFFFF" StrokeThickness="2.5"/>
+                    <Path x:Name="BubbleRing" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                    <local:VIcon x:Name="BubbleIcon" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+                <TextBlock x:Name="BubbleText" Foreground="White" FontSize="12.5" FontWeight="SemiBold" Margin="7,0,0,0"
+                           VerticalAlignment="Center" Typography.NumeralAlignment="Tabular"/>
+                <!-- шаг 62: остальные прогрессы мини-волнами, когда их несколько сразу -->
+                <StackPanel x:Name="BubbleMulti" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0" Visibility="Collapsed"/>
+                <!-- шаг 61: точки стека активностей (Activities.cs), видны, когда идёт больше одной -->
+                <StackPanel x:Name="BubbleDots" Orientation="Vertical" VerticalAlignment="Center" Margin="8,0,-4,0" Visibility="Collapsed"/>
+            </StackPanel>
+            </Grid>
+        </local:SBorder>
+        <!-- Пузырь событий (шаг 52): плашки и уведомления рядом с островом вместо раскрытия острова (EventBubble.cs) -->
+        <local:SBorder x:Name="EvBubble" VerticalAlignment="Top" HorizontalAlignment="Center" Height="38" MinWidth="38" CornerRadius="19"
+                       Margin="0,8,0,0" Visibility="Collapsed" Cursor="Hand" MaxWidth="340"
+                       Background="{Binding Background, ElementName=Pill}" BorderBrush="{Binding BorderBrush, ElementName=Pill}"
+                       BorderThickness="{Binding BorderThickness, ElementName=Pill}">
+            <local:SBorder.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="EvScale"/>
+                    <TranslateTransform x:Name="EvIn"/>
+                    <TranslateTransform x:Name="EvMove"/>
+                </TransformGroup>
+            </local:SBorder.RenderTransform>
+            <Grid>
+                <Grid x:Name="EvBgLayers" IsHitTestVisible="False">
+                    <local:SBorder CornerRadius="{Binding CornerRadius, ElementName=EvBubble}"
+                                   Background="{Binding Background, ElementName=BgImg}" Opacity="{Binding Opacity, ElementName=BgImg}"
+                                   Visibility="{Binding Visibility, ElementName=BgImg}"/>
+                    <Border x:Name="EvBgCustom" RenderTransformOrigin="0.5,0.5"
+                            Background="{Binding Background, ElementName=BgCustom}" Visibility="{Binding Visibility, ElementName=BgCustom}"/>
+                    <Border Background="{Binding Background, ElementName=BgShade}" Visibility="{Binding Visibility, ElementName=BgShade}"/>
+                </Grid>
+                <Grid x:Name="EvContent" Margin="5,0,14,0" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <local:SBorder x:Name="EvBadge" Width="28" Height="28" CornerRadius="14" VerticalAlignment="Center">
+                        <Grid>
+                            <TextBlock x:Name="EvInit" Foreground="White" FontWeight="Bold" FontSize="10.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Image x:Name="EvImg" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <local:SBorder x:Name="EvArt" CornerRadius="14"/>
+                            <local:VIcon x:Name="EvIcon" FontSize="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </local:SBorder>
+                    <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="EvTitle" Foreground="White" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="EvSub" Foreground="#A0FFFFFF" FontSize="10.5" TextTrimming="CharacterEllipsis" Margin="0,-1,0,0"/>
+                        <Grid x:Name="EvBar" Width="70" Height="4" HorizontalAlignment="Left">
+                            <local:SBorder CornerRadius="2" Background="#33FFFFFF"/>
+                            <local:SBorder x:Name="EvFill" CornerRadius="2" Background="White" HorizontalAlignment="Left" Width="0"/>
+                        </Grid>
+                    </StackPanel>
+                    <TextBlock x:Name="EvValue" Grid.Column="2" Foreground="White" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0"
+                               VerticalAlignment="Center" Typography.NumeralAlignment="Tabular"/>
+                </Grid>
+            </Grid>
+        </local:SBorder>
+        <!-- Счётчик кадров (Ctrl+Alt+F), см. Performance.cs -->
+        <local:SBorder x:Name="FpsBox" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,8,0,0" CornerRadius="8"
+                       Background="#D0000000" Padding="8,3" Visibility="Collapsed" IsHitTestVisible="False">
+            <TextBlock x:Name="FpsText" Foreground="#DDFFFFFF" FontSize="11" FontFamily="Consolas"/>
+        </local:SBorder>
+    </Grid>
+</Window>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ShyFlow</AssemblyName>
+    <ApplicationIcon>ShyFlow.ico</ApplicationIcon>
+    <Product>ShyFlow</Product>
+    <Title>ShyFlow</Title>
+    <Description>ShyFlow</Description>
+    <Authors>ShyFlow</Authors>
+    <Company>ShyFlow</Company>
+    <Copyright>ShyFlow</Copyright>
+    <RootNamespace>Island</RootNamespace>
+    <Version>3.4.0</Version>
+    <AssemblyVersion>3.4.0.0</AssemblyVersion>
+    <FileVersion>3.4.0.0</FileVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="ShyFlow.ico" />
+    <Resource Include="ShyFlow.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+</Project>

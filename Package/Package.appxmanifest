@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Шаг 75: манифест пакета MSIX для Microsoft Store. Значения в __ПОДЧЁРКИВАНИЯХ__ build-store.ps1 подставляет
+     из Package\store.json (их даёт Partner Center: Product management -> Product identity) и из Island.csproj (версия). -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap5 rescap">
+
+  <Identity Name="__IDENTITY_NAME__" Publisher="__PUBLISHER__" Version="__VERSION__" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>ShyFlow</DisplayName>
+    <PublisherDisplayName>__PUBLISHER_DISPLAY__</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+    <Resource Language="ru-RU" />
+  </Resources>
+
+  <Applications>
+    <Application Id="ShyFlow" Executable="ShyFlow.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="ShyFlow" Description="Dynamic Island for Windows" BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\Square71x71Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- автозапуск вместе с Windows: включается из настроек ShyFlow (AppSettings.ApplyStartupTask) -->
+        <uap5:Extension Category="windows.startupTask" Executable="ShyFlow.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:StartupTask TaskId="ShyFlowStartup" Enabled="false" DisplayName="ShyFlow" />
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <!-- файл на телефон по QR: маленький сервер в локальной сети (LanShare.cs) -->
+    <Capability Name="privateNetworkClientServer" />
+    <!-- обычная программа для Windows (WPF), а не UWP -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
