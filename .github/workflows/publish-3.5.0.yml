@@ -1,0 +1,48 @@
+# Выпуск ShyFlow 3.5.0: берёт уже собранный установщик (сборка 39565987121) и публикует релиз.
+# Исходники здесь не нужны и в репозиторий не добавляются.
+name: Publish 3.5.0
+on:
+  push:
+    paths: ['.github/workflows/publish-3.5.0.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ShyFlow-Setup
+          run-id: 39565987121
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: out
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls -la out
+          cat > notes.md <<'NOTES'
+          ## ShyFlow 3.5.0
+          
+          Если у тебя уже стоит 3.1 или новее, ShyFlow сам предложит обновиться. Иначе скачай `ShyFlow-Setup.exe` ниже и запусти — встаёт поверх, настройки остаются.
+          
+          ### Что нового
+          - **Карточки прямо из острова:** ★ в развёрнутом острове — карточка выпадает прямо в нём, цветом редкости. Первая за день — **карточка дня** с шансом на редкую. **Наборы:** 3 карточки одного исполнителя. Новые достижения.
+          - **Поделиться:** у карточки кнопка «Поделиться» — картинка для сторис сразу в буфере. **Итоги месяца** с топом треков и карточкой месяца.
+          - **Не мешает в играх:** в играх и видео на весь экран остров сжимается в тонкую полупрозрачную черту (или прячется совсем — на выбор).
+          - **Положение и мониторы:** остров по центру, слева или справа; может переезжать на монитор с активным окном.
+          - **Док снизу:** твои программы внизу экрана — капсулой как остров или вырезом у края.
+          - **Дуэты:** в плеере на весь экран строки второго голоса справа.
+          - **Быстрые действия:** только нужные плитки, правый клик — закрепить, «Ещё» — все. Подписи больше не обрезаются.
+          - **Настройки в стиле острова**, вырез (notch) настраивается ползунками.
+          - **Новые языки:** украинский, испанский, немецкий, португальский.
+          - Исправлено: клики по плиткам и карточкам у края иногда терялись; лишнее место справа у часов; «Отдельный пузырь» выключал не все пузыри.
+          
+          Если Windows или антивирус предупреждает о файле: установщик не подписан платным сертификатом, это ложное срабатывание.
+          
+          ---
+          
+          **EN:** If you have 3.1 or newer, ShyFlow will offer this update itself. New in 3.5.0: collect cards right from the island (★), card of the day, artist sets, share cards and a monthly recap to stories; a thin strip instead of the island in full-screen games and videos; left/right position and follow-the-active-monitor; a bottom app dock (island or notch style); duet lyrics in the full-screen player; pinned quick actions; island-style settings and notch sliders; Ukrainian, Spanish, German and Portuguese. Fixes: lost clicks near tile edges, extra space next to the clock, the bubble switch now turns off all bubbles.
+          NOTES
+          gh release create 3.5.0 out/ShyFlow-Setup.exe --repo "$GITHUB_REPOSITORY" --target main --title "ShyFlow 3.5.0" --notes-file notes.md
